@@ -31,11 +31,17 @@ class autoML:
         self.labels = None
 
         self.results = None
-        self.bestAlgorithm = None
+        self.bestalgorithm = {
+            'model': None,
+            'params': None,
+            'acc': 0
+        }
         self.algorithms = {
             'model': [LogisticRegression, SGDClassifier],
             'hyperparameters': [{"C": np.logspace(-3, 3, 7),
-                                 "penalty": ["l1", "l2"]},
+                                 "penalty": ["l1", "l2"],
+                                 "fit_intercept": [True, False],
+                                 "solver": ['liblinear', 'saga']},
                                 {
                 'alpha': [1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3],
                 'n_iter': [1000],
@@ -75,19 +81,16 @@ class autoML:
 
         self.results = []
         for idx, algorithm in enumerate(tqdm(self.algorithms["model"])):
-            alghoritm_cv = GridSearchCV(
+            algorithm_cv = GridSearchCV(
                 algorithm(), self.algorithms["hyperparameters"][idx])
-            alghoritm_cv.fit(X_train, y_train)
-            y_pred = alghoritm_cv.predict(X_test)
-            self.algorithms["best_params"].append(alghoritm_cv.best_params_)
-            self.algorithms["best_acc"].append(alghoritm_cv.best_score_)
-        print(self.algorithms["best_acc"])
-
-    def evaluate(self, y_pred, y_test):
-        return {'accuracy': str(accuracy_score(y_test, y_pred)),
-                'precision': str(precision_score(y_test, y_pred)),
-                'recall': str(recall_score(y_test, y_pred)),
-                'f1': str(f1_score(y_test, y_pred))}
+            algorithm_cv.fit(X_train, y_train)
+            y_pred = algorithm_cv.predict(X_test)
+            self.algorithms["best_params"].append(algorithm_cv.best_params_)
+            self.algorithms["best_acc"].append(algorithm_cv.best_score_)
+            if (algorithm_cv.best_score_ > self.bestalgorithm["acc"]):
+                self.bestalgorithm["model"] = algorithm.__name__
+                self.bestalgorithm["params"] = algorithm_cv.best_params_
+                self.bestalgorithm["acc"] = algorithm_cv.best_score_
 
     def read_dataset(self, dataset, delimiter):
         return pd.read_csv(dataset, delimiter=delimiter)

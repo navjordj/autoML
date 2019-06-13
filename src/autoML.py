@@ -1,4 +1,6 @@
 import warnings
+import datetime
+
 import pandas as pd
 import numpy as np
 import numpy as numpy
@@ -10,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.externals import joblib
 
 
 def warn(*args, **kwargs):
@@ -31,11 +34,6 @@ class autoML:
         self.labels = None
 
         self.results = None
-        self.bestalgorithm = {
-            'model': None,
-            'params': None,
-            'acc': 0
-        }
         self.algorithms = {
             'model': [LogisticRegression, SGDClassifier],
             'hyperparameters': [{"C": np.logspace(-3, 3, 7),
@@ -52,6 +50,8 @@ class autoML:
             'best_acc': []
         }
 
+        self.best_model = None
+
     def process_data(self):
         """
         Drop index column if specified by user
@@ -62,6 +62,8 @@ class autoML:
         self.label_target()
 
         self.processed = True
+
+        self.bestacc = 0
 
     def label_target(self):
         enc = LabelEncoder()
@@ -87,10 +89,13 @@ class autoML:
             y_pred = algorithm_cv.predict(X_test)
             self.algorithms["best_params"].append(algorithm_cv.best_params_)
             self.algorithms["best_acc"].append(algorithm_cv.best_score_)
-            if (algorithm_cv.best_score_ > self.bestalgorithm["acc"]):
-                self.bestalgorithm["model"] = algorithm.__name__
-                self.bestalgorithm["params"] = algorithm_cv.best_params_
-                self.bestalgorithm["acc"] = algorithm_cv.best_score_
+            if (algorithm_cv.best_score_ > self.bestacc):
+                self.best = algorithm_cv.best_score_
+                self.best_model = algorithm_cv.best_estimator_
+
+    def save_model(self):
+        model_file = f'model{datetime.date.today()}.pkl'
+        joblib.dump(self.best_model, model_file)
 
     def read_dataset(self, dataset, delimiter):
         return pd.read_csv(dataset, delimiter=delimiter)
@@ -107,3 +112,5 @@ if __name__ == "__main__":
     data.process_data()
     data.show_data()
     data.find_best_model()
+    data.save_model()
+    print(data.best_model)

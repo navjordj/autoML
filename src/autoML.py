@@ -12,12 +12,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.svm import SVC
+
 from sklearn.externals import joblib
+
+import xgboost
 
 
 def warn(*args, **kwargs):
     pass
 
+warnings.filterwarnings(module='sklearn*', action='ignore', category=DeprecationWarning)
 
 warnings.warn = warn
 
@@ -35,7 +40,7 @@ class autoML:
 
         self.results = None
         self.algorithms = {
-            'model': [LogisticRegression, SGDClassifier],
+            'model': [LogisticRegression, SGDClassifier, SVC, xgboost.XGBClassifier],
             'hyperparameters': [{"C": np.logspace(-3, 3, 7),
                                  "penalty": ["l1", "l2"],
                                  "fit_intercept": [True, False],
@@ -45,9 +50,15 @@ class autoML:
                 'n_iter': [1000],
                 'loss': ['log'],
                 'penalty': ['l2'],
-                'n_jobs': [-1]}],
+                'n_jobs': [-1]}, {
+    'max_depth': [2], #[3,4,5,6,7,8,9], # 5 is good but takes too long in kaggle env
+    'subsample': [0.6], #[0.4,0.5,0.6,0.7,0.8,0.9,1.0],
+    'colsample_bytree': [0.5], #[0.5,0.6,0.7,0.8],
+    'n_estimators': [1000], #[1000,2000,3000]
+    'reg_alpha': [0.03] #[0.01, 0.02, 0.03, 0.04]
+}, {'C':[1,10,100,1000],'gamma':[1,0.1,0.001,0.0001], 'kernel':['linear','rbf']}],
             'best_params': [],
-            'best_acc': []
+            'best_acc': [],
         }
 
         self.best_model = None

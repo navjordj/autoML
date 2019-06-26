@@ -14,6 +14,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.externals import joblib
 
+from sklearn.ensemble import AdaBoostClassifier
+
 
 def warn(*args, **kwargs):
     pass
@@ -27,15 +29,14 @@ class autoML:
         self.dataset = dataset
         self.data = self.read_dataset(self.dataset, delimiter)
         self.target = target
-        if drop_index != None:
-            self.drop_index = drop_index
+        self.drop_index = drop_index
 
         self.processed = False
         self.labels = None
 
         self.results = None
         self.algorithms = {
-            'model': [LogisticRegression, SGDClassifier],
+            'model': [LogisticRegression, SGDClassifier, AdaBoostClassifier],
             'hyperparameters': [{"C": np.logspace(-3, 3, 7),
                                  "penalty": ["l1", "l2"],
                                  "fit_intercept": [True, False],
@@ -45,7 +46,10 @@ class autoML:
                 'n_iter': [1000],
                 'loss': ['log'],
                 'penalty': ['l2'],
-                'n_jobs': [-1]}],
+                'n_jobs': [-1]}, {
+                'n_estimators': [50, 100],
+                'learning_rate': [0.01, 0.05, 0.1, 0.3, 1],
+            }],
             'best_params': [],
             'best_acc': []
         }
@@ -57,7 +61,8 @@ class autoML:
         Drop index column if specified by user
         Drops columns with missing values
         """
-        self.data = self.data.drop(self.drop_index, axis=1)
+        if self.drop_index != None:
+            self.data = self.data.drop(self.drop_index, axis=1)
         self.data = self.data.dropna(axis='columns')
         self.label_target()
 
@@ -108,9 +113,10 @@ class autoML:
 
 
 if __name__ == "__main__":
-    data = autoML('../data.csv', drop_index='id', target="diagnosis")
+    data = autoML('../banknote.csv', target="class")
     data.process_data()
     data.show_data()
     data.find_best_model()
     data.save_model()
     print(data.best_model)
+    print(data.algorithms["best_acc"])
